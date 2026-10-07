@@ -14,7 +14,7 @@ Los datos se guardan en localStorage del navegador, bajo la clave existente `cas
 
 Usá el mismo navegador y la misma dirección. Otro dispositivo, otro perfil o una dirección distinta no comparte los registros. Borrar los datos del sitio o usar una sesión privada puede eliminar los registros. Descargá respaldos periódicos y guardalos en tu computadora; nunca los subas al repositorio. Podés restaurarlos desde el panel en otro navegador.
 
-La página no lee archivos del disco automáticamente: para restaurar un respaldo debés seleccionarlo y confirmar. Cualquier persona con acceso a tu perfil del navegador puede ver los registros locales. La contraseña del servicio es temporal, se borra al cerrar su ventana y nunca se guarda ni se exporta. El portapapeles conserva el texto hasta que lo reemplaces.
+La página no lee archivos del disco automáticamente: para restaurar un respaldo debés seleccionarlo y confirmar. Cualquier persona con acceso a tu perfil del navegador puede ver los registros locales. La contraseña del servicio se guarda sin cifrar en este navegador y se puede copiar desde su tarjeta. No se incluye en los mensajes ni en los respaldos descargados: al restaurar en otro navegador debés volver a cargarla. Los servicios anteriores se conservan; podés editarlos para completar su entidad. El portapapeles conserva el texto hasta que lo reemplaces.
 
 ## Desarrollo y publicación
 
