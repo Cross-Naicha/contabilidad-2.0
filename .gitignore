@@ -1,4 +1,6 @@
 casa-respaldo*.json
+datos.json
+*-respaldo*.json
 node_modules/
 .env
 .env.*
