@@ -1,0 +1,4 @@
+casa-respaldo*.json
+node_modules/
+.env
+.env.*
