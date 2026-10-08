@@ -1,6 +1,9 @@
 casa-respaldo*.json
 datos.json
 *-respaldo*.json
+Facturas & Comprobantes/
+__pycache__/
 node_modules/
 .env
 .env.*
+casa-tarjetas-cifradas*.json
