@@ -1,7 +1,7 @@
 'use strict';
 // Incrementar la versión al modificar los archivos de la aplicación.
 const PREFIX='casa-al-dia-shell-'+encodeURIComponent(self.registration.scope)+'-';
-const CACHE=PREFIX+'v73';
+const CACHE=PREFIX+'v77';
 const ASSETS=['index.html','styles.css','receipt-model.js','app.js','receipts.js','receipt-pdf.js','vendor/pdf-lib.min.js','workflow.js','card-crypto.js','cards.js','pwa.js','navigation.js','favicon.svg','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png'];
 const assetUrls=new Set(ASSETS.map(path=>new URL(path,self.registration.scope).href));
 async function appHTML(response){
