@@ -12,22 +12,25 @@
     <link rel="icon" href="favicon.svg" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <meta name="theme-color" content="#173fdf" />
+    <meta name="theme-color" content="#384a74" />
     <script src="pwa.js" defer></script>
     <script src="receipt-model.js" defer></script>
     <script src="app.js" defer></script>
+    <script src="navigation.js" defer></script>
     <script src="workflow.js" defer></script>
     <script src="card-crypto.js" defer></script>
     <script src="cards.js" defer></script>
     <script src="receipts.js" defer></script>
+    <script src="vendor/pdf-lib.min.js" defer></script>
+    <script src="receipt-pdf.js" defer></script>
   </head>
   <body>
     <header>
       <a class="brand" href="index.html">⌂ <span>Casa al día</span></a>
-      <nav class="header-settings" aria-label="Configuración"><button id="open-settings" class="settings-button" aria-label="Abrir configuraciones" title="Configuraciones"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.961 11.216 L21.952 12.98 L21.569 14.903 L19.055 15.771 L18.184 17.075 L18.344 19.73 L16.714 20.819 L14.322 19.656 L12.784 19.961 L11.02 21.952 L9.097 21.569 L8.229 19.055 L6.925 18.184 L4.27 18.344 L3.181 16.714 L4.344 14.322 L4.039 12.784 L2.048 11.02 L2.431 9.097 L4.945 8.229 L5.816 6.925 L5.656 4.27 L7.286 3.181 L9.678 4.344 L11.216 4.039 L12.98 2.048 L14.903 2.431 L15.771 4.945 L17.075 5.816 L19.73 5.656 L20.819 7.286 L19.656 9.678 Z"/><circle cx="12" cy="12" r="3.5"/></svg></button></nav>
+      <div class="header-clock" aria-label="Fecha y hora de Buenos Aires"><time id="header-date"></time><time id="header-time"></time></div>
+      <nav class="header-settings" aria-label="Configuración"><button id="header-update" class="settings-button" aria-label="Actualizar aplicación" title="Actualización disponible" hidden><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10a7 7 0 0 1 12-4.9L19 7M19 3v4h-4M19 14a7 7 0 0 1-12 4.9L5 17M5 21v-4h4"/></svg></button><button id="open-settings" class="settings-button" aria-label="Abrir configuraciones" title="Configuraciones"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.961 11.216 L21.952 12.98 L21.569 14.903 L19.055 15.771 L18.184 17.075 L18.344 19.73 L16.714 20.819 L14.322 19.656 L12.784 19.961 L11.02 21.952 L9.097 21.569 L8.229 19.055 L6.925 18.184 L4.27 18.344 L3.181 16.714 L4.344 14.322 L4.039 12.784 L2.048 11.02 L2.431 9.097 L4.945 8.229 L5.816 6.925 L5.656 4.27 L7.286 3.181 L9.678 4.344 L11.216 4.039 L12.98 2.048 L14.903 2.431 L15.771 4.945 L17.075 5.816 L19.73 5.656 L20.819 7.286 L19.656 9.678 Z"/><circle cx="12" cy="12" r="3.5"/></svg></button></nav>
     </header>
     <main>
-      <p id="pwa-status" class="footnote" role="status" aria-live="polite"></p>
       <div class="heading">
         <div>
           <p class="eyebrow">CUENTAS DEL HOGAR</p>
@@ -42,17 +45,18 @@
       <div id="notice" role="status" aria-live="polite"></div>
       <nav class="view-switch" aria-label="Secciones del panel">
         <button type="button" data-view="services" aria-pressed="true" aria-controls="services-panel">Servicios</button>
-        <button type="button" data-view="bills" aria-pressed="false" aria-controls="bills-panel">Facturas / historial</button>
+        <button type="button" data-view="bills" aria-pressed="false" aria-controls="bills-panel">Histórico</button>
         <button type="button" data-view="cards" aria-pressed="false" aria-controls="cards-panel">Tarjetas</button>
       </nav>
       <section id="services-panel" aria-label="Servicios">
         <div class="section-heading"><div><h2>Mis servicios</h2><p class="view-description">Accesos y datos de tus empresas prestadoras.</p></div><button id="new-service">＋ Agregar servicio</button></div>
         <div id="services" class="content-list"></div>
       </section>
-      <section id="bills-panel" aria-label="Facturas e historial" hidden>
+      <section id="bills-panel" aria-label="Histórico" hidden>
+        <label class="compact pending-month-control">Total pendiente de <select id="pending-month" aria-label="Mes del total pendiente"><option value="all">Todos los meses</option></select></label>
         <section id="summary" class="summary" aria-label="Resumen de facturas"></section>
-        <div class="section-heading"><h2>Facturas / historial</h2><button id="new-bill">＋ Registrar factura</button></div>
-        <label class="compact bill-filter">Ver <select id="filter"><option value="pending">Pendientes</option><option value="all">Todas</option><option value="paid">Pagadas</option></select></label>
+        <div class="section-heading"><div class="history-heading-title"><h2>Histórico</h2><button type="button" id="swap-history-filters" class="secondary" title="Intercambiar filas de filtros" aria-label="Intercambiar filas: poner estados primero"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 20V4m-4 4 4-4 4 4M16 4v16m-4-4 4 4 4-4"/></svg></button></div><button id="new-bill">＋ Registrar factura</button></div>
+        <div class="history-filter-toolbar"><div id="history-filter-rows" class="history-filter-rows"><div id="bill-service-filters" class="bill-service-filters history-filter-row" role="group" aria-label="Filtrar por servicio"></div><div id="bill-status-filters" class="bill-status-filters history-filter-row" role="group" aria-label="Filtrar por estado"><button type="button" class="secondary small" data-filter-status="pending" aria-pressed="false">Pendientes</button><button type="button" class="secondary small" data-filter-status="all" aria-pressed="true">Todas</button><button type="button" class="secondary small" data-filter-status="paid" aria-pressed="false">Pagadas</button></div></div></div>
         <div id="bills"></div>
         <p class="view-description">Al marcar un pago se prepara el mensaje para WhatsApp.</p>
       </section>
@@ -72,7 +76,7 @@
         aplicación. Tus datos no se suben; descargá respaldos para conservarlos.
       </p>
     </main>
-<dialog id="settings-dialog" aria-labelledby="settings-title"><div class="section-heading"><h2 id="settings-title">Configuraciones</h2><button class="text-button" data-close aria-label="Cerrar configuraciones">✕</button></div><button id="manage-receipt-types" class="secondary">Tipos de comprobante</button><div class="actions"><button id="pwa-install" class="secondary small" hidden>Instalar app</button><button id="pwa-update" class="secondary small" hidden>Actualizar app</button></div>      <div class="local-tools">
+<dialog id="settings-dialog" aria-labelledby="settings-title"><div class="section-heading"><h2 id="settings-title">Configuraciones</h2><button class="text-button" data-close aria-label="Cerrar configuraciones">✕</button></div><button id="manage-receipt-types" class="secondary">Tipos de comprobante</button><div class="actions"><button id="pwa-install" class="secondary small" hidden>Instalar app</button></div><div class="settings-updates"><button id="pwa-check" class="secondary" disabled>Buscar actualización</button><button id="pwa-update" hidden>Actualizar app</button></div><p id="pwa-status" role="status" aria-live="polite" hidden></p>      <div class="local-tools">
           <details>
             <summary>Respaldo de mis registros</summary>
             <p>
@@ -89,7 +93,8 @@
           </details>
       </div></dialog>
     <dialog id="receipt-types-dialog" class="wide-dialog" aria-labelledby="receipt-types-title"><div class="section-heading"><h2 id="receipt-types-title">Tipos de comprobante</h2><button class="text-button" data-close aria-label="Cerrar">✕</button></div><p>Elegí qué datos registrar para cada proveedor. Podés asignar una plantilla a varios servicios.</p><div id="receipt-types-list"></div><button id="new-receipt-type">＋ Crear tipo de comprobante</button><p id="receipt-types-feedback" role="status"></p></dialog>
-    <dialog id="receipt-type-editor" class="wide-dialog"><form id="receipt-type-form"><div class="section-heading"><h2>Plantilla de comprobante</h2><button type="button" class="text-button" data-close aria-label="Cerrar">✕</button></div><label>Nombre del tipo<input name="templateName" required maxlength="80" placeholder="Ej.: Comprobante EDET" /></label><div id="receipt-template-fields"></div><button type="button" id="add-receipt-field" class="secondary">＋ Agregar campo</button><p id="receipt-template-error" role="status"></p><p class="footnote">Los cambios se aplican a futuros comprobantes. Los registrados conservan sus campos originales.</p><button>Guardar plantilla</button></form></dialog>
+    <dialog id="receipt-type-editor" class="wide-dialog"><form id="receipt-type-form"><div class="section-heading"><h2>Plantilla de comprobante</h2><button type="button" class="text-button" data-close aria-label="Cerrar">✕</button></div><label>Nombre del tipo<input name="templateName" required maxlength="80" placeholder="Ej.: Comprobante EDET" /></label><div class="form-grid"><label>Formato del archivo<select name="fileFormat" id="receipt-file-format"><option value="pdf">PDF (.pdf)</option><option value="jpeg">JPEG (.jpeg)</option><option value="jpg">JPG (.jpg)</option><option value="png">PNG (.png)</option><option value="other">Otra extensión</option></select></label><label id="receipt-other-extension" hidden>Extensión<input name="fileExtension" maxlength="10" placeholder="Ej.: webp" pattern="[.]?[A-Za-z0-9]{1,10}" /></label></div><div id="receipt-template-fields"></div><button type="button" id="add-receipt-field" class="secondary">＋ Agregar campo</button><p id="receipt-template-error" role="status"></p><p class="footnote">Los cambios se aplican a futuros comprobantes. Los registrados conservan sus campos y formato originales.</p><button>Guardar plantilla</button></form></dialog>
+<dialog id="constancia-version-dialog" aria-labelledby="constancia-version-title"><form method="dialog"><div class="section-heading"><h2 id="constancia-version-title">Generar constancia PDF</h2><button type="button" class="text-button" data-close aria-label="Cerrar">✕</button></div><p>Elegí qué información incluir.</p><div class="constancia-version-options"><button type="submit" name="variant" value="extended" class="secondary"><strong>Extendida</strong><span>Servicio, factura y todos los datos del comprobante.</span></button><button type="submit" name="variant" value="summary" class="secondary"><strong>Resumida</strong><span>Solo los campos que completaste en el comprobante.</span></button></div><p class="meta">Ambas versiones son constancias personales, no emitidas por el proveedor.</p></form></dialog>
     <dialog id="receipt-dialog" aria-labelledby="receipt-title"><form id="receipt-form"><div class="section-heading"><h2 id="receipt-title">Registrar comprobante</h2><button type="button" class="text-button" data-close aria-label="Cerrar">✕</button></div><p id="receipt-bill-info"></p><p id="receipt-type-info"></p><code id="receipt-document-name"></code><div id="receipt-value-fields"></div><p id="receipt-error" role="status"></p><p class="footnote">Registrar estos datos no confirma el pago ni adjunta el PDF. Usá el nombre codificado para guardar el archivo en tu carpeta.</p><button>Guardar comprobante</button></form></dialog>
     <dialog id="bill-dialog">
       <form id="bill-form">
@@ -107,13 +112,14 @@
         <input name="id" type="hidden" /><label
           >Servicio<select name="serviceId" required></select
         ></label>
+        <label>Número o código de factura del proveedor<input name="providerInvoiceCode" type="text" required pattern=".*\S.*" maxlength="100" autocomplete="off" placeholder="Ej.: 0001-00012345" /></label>
         <div class="form-grid">
           <label>Formato del período<select name="periodMode" id="period-mode"><option value="monthly">Mensual</option><option value="bimonthly">Bimestral (1 a 6)</option></select></label>
           <label id="monthly-period">Período<input name="period" type="month" required /></label>
           <label id="bimonthly-year" hidden>Año del período<input name="periodYear" type="number" min="1000" max="9999" step="1" /></label>
           <label id="bimonthly-cycle" hidden>Período bimestral<select name="periodCycle"><option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option><option value="05">5</option><option value="06">6</option></select></label>
-          <label>Vencimiento<input name="due" type="date" required /></label><label>Próximo vencimiento anunciado (opcional)<input name="nextDue" type="date" /><span class="footnote">La fecha de la siguiente factura, si aparece en esta.</span></label>
-          ><label
+          <label>Vencimiento<input name="due" type="date" required /></label><label>Próximo vencimiento<input name="nextDue" type="date" /></label>
+          <label
             >Importe ($ ARS)<input
               name="amount"
               type="number"
@@ -159,10 +165,11 @@
         ><datalist id="service-types"><option value="Agua"></option><option value="Luz"></option><option value="Gas"></option><option value="Internet"></option><option value="Telefonía"></option><option value="Otros"></option></datalist><label
           >Entidad<input name="entity" required maxlength="100" placeholder="Empresa prestadora" /></label
         ><label
-          >Web del servicio<input
+          >Página de servicio (la que abre la aplicación)<input
             name="url"
             type="url"
             placeholder="https://…" /></label
+        ><label>Página oficial (para los PDF personales)<input name="officialUrl" type="url" placeholder="https://…" /></label
         ><label
           >Forma de acceso<select name="authMethod" id="auth-method"><option value="credentials">Usuario y contraseña</option><option value="google">Autenticación con Google</option></select></label><p id="google-access-help" hidden>En la web de la empresa, elegí «Continuar con Google».</p><label id="username-field">Usuario (solo en este navegador)<input
             name="username"
@@ -214,7 +221,11 @@
       ><button id="copy-message">Copiar para WhatsApp</button>
     </dialog>
     <dialog id="workflow-editor" class="wide-dialog"><div class="section-heading"><h2 id="workflow-title">Configurar pasos</h2><button class="text-button" data-close aria-label="Cerrar">✕</button></div><p>Arrastrá las etiquetas para ordenar los pasos. También podés usar Subir y Bajar. Editá las instrucciones de cada paso.</p><div class="workflow-add"><label>Paso<select id="step-type"></select></label><button id="add-step" class="secondary">Agregar paso</button></div><ol id="workflow-steps"></ol><p id="workflow-feedback" role="status"></p><div class="actions"><button id="save-workflow">Guardar secuencia</button><button id="default-workflow" class="secondary">Usar secuencia sugerida</button></div></dialog>
-    <dialog id="process-dialog"><div class="section-heading"><h2 id="process-title">Proceso de pago</h2><button class="text-button" data-close aria-label="Pausar y cerrar">✕</button></div><p id="process-count"></p><progress id="process-progress" max="1" value="0"></progress><h3 id="process-step"></h3><p id="process-instruction"></p><label id="process-bill-label" hidden>Factura de este proceso<select id="process-bill"></select></label><div id="process-transfer-cards" class="transfer-cards" aria-live="polite" hidden><div class="transfer-card"><span>Referencia bancaria</span><strong id="process-reference"></strong></div><div class="transfer-card"><span>Monto a transferir</span><strong id="process-transfer-amount"></strong></div></div><div id="process-card-vault" hidden></div><p id="process-feedback" role="status"></p><button id="process-main"></button><div class="actions"><button id="process-back" class="text-button">Volver</button><button id="process-skip" class="text-button">Omitir paso</button><button id="process-pause" class="text-button">Pausar</button></div></dialog>
+    <dialog id="process-dialog"><div class="process-scroll-content"><div class="section-heading"><h2 id="process-title">Proceso de pago</h2><button class="text-button" data-close aria-label="Pausar y cerrar">✕</button></div><p id="process-count"></p><progress id="process-progress" max="1" value="0"></progress><h3 id="process-step"></h3><p id="process-instruction"></p><p id="process-note-display" hidden></p><label id="process-note-field" hidden>Nota del paso<textarea id="process-note" maxlength="1000" rows="2" placeholder="Escribí un recordatorio para este servicio y paso"></textarea><span id="process-note-status" role="status" aria-live="polite"></span></label><div id="process-bill-label" class="process-bill-picker" hidden><span id="process-bill-caption">Factura de este proceso</span><select id="process-bill" hidden aria-hidden="true" tabindex="-1"></select><button type="button" id="process-bill-toggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="process-bill-options" aria-labelledby="process-bill-caption process-bill-value"><span id="process-bill-value"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div id="process-bill-options" role="listbox" aria-labelledby="process-bill-caption" inert></div></div><p id="process-selected-bill" class="meta" hidden></p><div class="process-bill-tools"><button type="button" id="process-edit-bill" class="text-button" hidden>Editar factura</button><button type="button" id="process-new-bill" class="text-button" hidden>Registrar otra factura</button></div><fieldset id="process-name-options" hidden><legend>Formato del archivo</legend><div class="name-format-options"><label><input type="radio" name="process-format" value="pdf" checked> PDF</label><label><input type="radio" name="process-format" value="jpeg"> JPEG</label><label><input type="radio" name="process-format" value="jpg"> JPG</label><label><input type="radio" name="process-format" value="png"> PNG</label><label><input type="radio" name="process-format" value="other"> Otro</label></div><label id="process-custom-format-label" hidden>Extensión<input id="process-custom-format" maxlength="10" placeholder="Ej.: webp" pattern="[A-Za-z0-9]{1,10}"></label><label class="name-extension-option"><input type="checkbox" id="process-include-extension"> Incluir extensión del archivo</label><output id="process-name-preview" aria-live="polite"></output></fieldset><div id="process-transfer-cards" class="transfer-cards" aria-live="polite" hidden><div class="transfer-card"><span>Referencia bancaria</span><strong id="process-reference"></strong></div><div class="transfer-card"><span>Monto a transferir</span><strong id="process-transfer-amount"></strong></div></div><div id="process-card-vault" hidden></div><p id="process-feedback" role="status"></p><button id="process-main"></button><div class="actions"><button id="process-back" class="text-button">Volver</button><button id="process-skip" class="text-button">Omitir paso</button><button id="process-pause" class="text-button">Pausar</button><button id="process-edit-note" class="text-button" aria-controls="process-note-field" aria-expanded="false">Editar nota</button></div></div></dialog>
     <dialog id="card-dialog"><form id="card-form" autocomplete="off"><div class="section-heading"><h2>Tarjeta</h2><button type="button" class="text-button" data-card-close aria-label="Cerrar">✕</button></div><input name="id" type="hidden"><label>Nombre para identificarla<input name="label" required maxlength="60" placeholder="Ej.: Visa personal" autocomplete="off"></label><label>Número de tarjeta<input name="number" type="password" inputmode="numeric" required maxlength="30" autocomplete="off"></label><label>Titular<input name="holder" required maxlength="100" autocomplete="off"></label><label>Vencimiento (MM/AAAA)<input name="expiry" required maxlength="7" placeholder="12/2028" autocomplete="off"></label><p id="card-form-error" role="status"></p><button>Guardar tarjeta cifrada</button></form></dialog>
+    <nav class="floating-navigation" aria-label="Navegación rápida"><div id="floating-navigation-panel" class="floating-navigation-panel" inert><div class="floating-navigation-inner"><button type="button" class="secondary" data-view="services" aria-pressed="true" aria-controls="services-panel">Servicios</button><button type="button" class="secondary" data-view="bills" aria-pressed="false" aria-controls="bills-panel">Histórico</button><button type="button" class="secondary" data-view="cards" aria-pressed="false" aria-controls="cards-panel">Tarjetas</button></div></div><div class="floating-navigation-row"><div id="floating-navigation-tools" inert><button type="button" class="floating-round" id="floating-scroll-top" aria-label="Subir al inicio" title="Subir al inicio"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v14"/></svg></button><button type="button" class="floating-round" id="floating-update" aria-label="Buscar actualización" title="Buscar actualización"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11a6 6 0 0 1 10.2-4.3L18 8M18 4v4h-4M18 13a6 6 0 0 1-10.2 4.3L6 16M6 20v-4h4"/></svg></button></div><button type="button" id="floating-navigation-toggle" aria-expanded="false" aria-controls="floating-navigation-panel floating-navigation-tools" aria-label="Abrir navegación rápida" title="Navegación rápida"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div><p id="floating-update-status" role="status" hidden></p></nav>
   </body>
 </html>
+
+
+

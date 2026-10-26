@@ -1,18 +1,18 @@
 'use strict';
-const STEP_INFO={'web-number':['Abrir página y copiar número de usuario','Abrir página y copiar número de usuario','Pegá el número de usuario en la página del proveedor. Se usa el número de servicio registrado; si está vacío, se usa el usuario.'],web:['Abrir web','Abrir web del proveedor','Abrí la página y volvé aquí para continuar.'],user:['Copiar usuario','Copiar usuario','Pegá el usuario en la web del proveedor.'],password:['Copiar contraseña','Copiar contraseña','Pegá la contraseña en la web del proveedor.'],number:['Copiar número de servicio','Copiar número de servicio','Pegá el número de servicio donde lo soliciten.'],google:['Continuar con Google','Ya ingresé con Google','En la web del proveedor, elegí Continuar con Google.'],invoice:['Registrar factura','Registrar factura','Ingresá los datos de la factura que vas a pagar.'],fac:['Nombre de factura','Copiar nombre de factura','Usá este nombre para guardar o renombrar el PDF de la factura.'],reference:['Referencia bancaria','Listo, continuar','Escribí este código en el concepto de la transferencia desde tu teléfono.'],cards:['Datos de tarjeta','Listo, continuar','Desbloqueá las tarjetas aquí y copiá los datos solicitados. Podés mostrar el mes y el año para elegirlos en los menús del proveedor.'],pay:['Confirmar pago','Confirmar que pagué','Realizá el pago en la web del proveedor. Confirmá aquí solamente cuando haya sido exitoso.'],receipt:['Registrar comprobante','Registrar comprobante','Ingresá los campos del tipo de comprobante asignado a este servicio. El registro no confirma el pago.'],pag:['Nombre de comprobante','Copiar nombre de comprobante','Descargá el comprobante del proveedor y guardalo con este nombre.'],message:['Mensaje para mamá','Preparar mensaje para mamá','Revisá y copiá el mensaje para enviarlo por WhatsApp.'],custom:['Instrucción propia','Listo, continuar','Escribí las instrucciones para este paso.']};
+const STEP_INFO={'web-number':['Abrir página y copiar número de usuario','Abrir página y copiar número de usuario','Pegá el número de usuario en la página del proveedor. Se usa el número de servicio registrado; si está vacío, se usa el usuario.'],web:['Abrir web','Abrir web del proveedor','Abrí la página y volvé aquí para continuar.'],user:['Copiar usuario','Copiar usuario','Pegá el usuario en la web del proveedor.'],password:['Copiar contraseña','Copiar contraseña','Pegá la contraseña en la web del proveedor.'],number:['Copiar número de servicio','Copiar número de servicio','Pegá el número de servicio donde lo soliciten.'],google:['Continuar con Google','Ya ingresé con Google','En la web del proveedor, elegí Continuar con Google.'],invoice:['Registrar factura','Registrar factura','Ingresá los datos de la factura que vas a pagar.'],'invoice-pdf':['Generar factura PDF','Generar factura PDF','Generá un registro personal en PDF con los datos de la factura seleccionada. No es una factura emitida por el proveedor.'],fac:['Nombre de factura','Copiar nombre de factura','Usá este nombre para guardar o renombrar el PDF de la factura.'],reference:['Referencia bancaria','Listo, continuar','Escribí este código en el concepto de la transferencia desde tu teléfono.'],cards:['Datos de tarjeta','Listo, continuar','Desbloqueá las tarjetas aquí y copiá los datos solicitados. Podés mostrar el mes y el año para elegirlos en los menús del proveedor.'],pay:['Confirmar pago','Confirmar que pagué','Realizá el pago en la web del proveedor. Confirmá aquí solamente cuando haya sido exitoso.'],receipt:['Registrar comprobante','Registrar comprobante','Ingresá los campos del tipo de comprobante asignado a este servicio. El registro no confirma el pago.'],'receipt-pdf':['Generar constancia PDF','Generar constancia PDF','Elegí una constancia extendida o resumida. Requiere registrar el comprobante y confirmar el pago.'],pag:['Nombre de comprobante','Copiar nombre de comprobante','Descargá el comprobante del proveedor y guardalo con este nombre.'],message:['Mensaje para mamá','Preparar mensaje para mamá','Revisá y copiá el mensaje para enviarlo por WhatsApp.'],custom:['Instrucción propia','Listo, continuar','Escribí las instrucciones para este paso.']};
 let editorServiceId='',draftSteps=[],dragIndex=null,processServiceId='',workflowBillContext=null;
-function suggestedSteps(service){return ['web',...(service.authMethod==='google'?['google']:['user','password']),...(service.serviceNumber?['number']:[]),'invoice','fac','reference','pay',...(service.receiptTypeId?['receipt']:[]),'pag','message'].map(type=>({type,text:''}));}
+function suggestedSteps(service){return ['web',...(service.authMethod==='google'?['google']:['user','password']),...(service.serviceNumber?['number']:[]),'invoice','fac','reference','pay',...(service.receiptTypeId?['receipt']:[]),'pag','message'].map(type=>({id:crypto.randomUUID(),type,text:'',note:''}));}
 function openWorkflow(id){const s=state.services.find(s=>s.id===id);editorServiceId=id;draftSteps=structuredClone(s.workflow??suggestedSteps(s));$('#workflow-title').textContent=`Pasos · ${serviceLabel(s)}`;$('#workflow-feedback').textContent='';renderEditor();$('#workflow-editor').showModal();}
-function renderEditor(){ $('#workflow-steps').innerHTML=draftSteps.map((step,index)=>`<li class="step-tag" draggable="true" data-step-index="${index}"><div class="step-tag-heading"><span class="drag-grip" aria-hidden="true">⠿</span><strong>${index+1}. ${esc(STEP_INFO[step.type][0])}</strong><div class="step-controls"><button class="text-button" data-move="-1" data-index="${index}" ${index===0?'disabled':''} aria-label="Subir paso ${index+1}">Subir</button><button class="text-button" data-move="1" data-index="${index}" ${index===draftSteps.length-1?'disabled':''} aria-label="Bajar paso ${index+1}">Bajar</button><button class="text-button" data-remove="${index}" aria-label="Quitar paso ${index+1}">Quitar</button></div></div><label>Instrucción<input data-step-text="${index}" maxlength="300" value="${esc(step.text)}" placeholder="${esc(STEP_INFO[step.type][2])}"></label></li>`).join('')||'<li class="empty">Agregá al menos un paso.</li>'; }
+function renderEditor(){ $('#workflow-steps').innerHTML=draftSteps.map((step,index)=>`<li class="step-tag" draggable="true" data-step-index="${index}"><div class="step-tag-heading"><span class="drag-grip" aria-hidden="true">⠿</span><strong>${index+1}. ${esc(STEP_INFO[step.type][0])}</strong><div class="step-controls"><button class="text-button" data-move="-1" data-index="${index}" ${index===0?'disabled':''} aria-label="Subir paso ${index+1}">Subir</button><button class="text-button" data-move="1" data-index="${index}" ${index===draftSteps.length-1?'disabled':''} aria-label="Bajar paso ${index+1}">Bajar</button><button class="text-button" data-remove="${index}" aria-label="Quitar paso ${index+1}">Quitar</button></div></div><label>Instrucción<input data-step-text="${index}" maxlength="300" value="${esc(step.text)}" placeholder="${esc(STEP_INFO[step.type][2])}"></label><label>Nota<textarea data-step-note="${index}" maxlength="1000" rows="2" placeholder="Recordatorio para este paso">${esc(step.note||'')}</textarea></label></li>`).join('')||'<li class="empty">Agregá al menos un paso.</li>'; }
 function moveStep(from,to){if(from===to||from<0||to<0||from>=draftSteps.length||to>=draftSteps.length)return;const [step]=draftSteps.splice(from,1);draftSteps.splice(to,0,step);renderEditor();}
 function processService(){return state.services.find(s=>s.id===processServiceId);}
 function updateProcess(change){const next=structuredClone(state),s=next.services.find(s=>s.id===processServiceId);if(!s?.process)return false;change(s.process,next);return save(next);}
-function startProcess(id){processServiceId=id;const s=processService();if(!s.process||s.process.index>=s.process.steps.length){const steps=structuredClone(s.workflow??suggestedSteps(s));if(!steps.length){openWorkflow(id);return;}const next=structuredClone(state);next.services.find(s=>s.id===id).process={steps,index:0,billId:''};if(!save(next))return;}renderProcess();$('#process-dialog').showModal();}
+function startProcess(id){processServiceId=id;const s=processService();if(!s.process||s.process.index>=s.process.steps.length){const steps=structuredClone(s.workflow??suggestedSteps(s));if(!steps.length){openWorkflow(id);return;}const next=structuredClone(state);const target=next.services.find(s=>s.id===id);target.workflow=structuredClone(steps);const pending=state.bills.filter(b=>b.serviceId===id&&!b.paidAt);target.process={steps,index:0,billId:pending.length===1?pending[0].id:''};if(!save(next))return;}renderProcess();$('#process-dialog').showModal();}
 function advanceProcess(){if(updateProcess(p=>p.index=Math.min(p.index+1,p.steps.length)))renderProcess();}
-function renderProcess(){const s=processService(),p=s?.process;if(!p){$('#process-card-vault').hidden=true;if(typeof CardVault!=='undefined')CardVault.renderProcess();$('#process-dialog').close();return;}$('#process-title').textContent=serviceLabel(s);$('#process-feedback').textContent='';$('#process-progress').max=p.steps.length;$('#process-progress').value=p.index;const done=p.index>=p.steps.length;$('#process-card-vault').hidden=done||p.steps[p.index].type!=='cards';if(typeof CardVault!=='undefined')CardVault.renderProcess();$('#process-count').textContent=done?'Secuencia terminada':`Paso ${p.index+1} de ${p.steps.length}`;$('#process-step').textContent=done?'Proceso terminado':STEP_INFO[p.steps[p.index].type][0];$('#process-instruction').textContent=done?'Podés cerrar o iniciar un nuevo proceso. Solo se registran como pagadas las facturas que confirmaste explícitamente.':p.steps[p.index].text||STEP_INFO[p.steps[p.index].type][2];$('#process-main').textContent=done?'Cerrar':STEP_INFO[p.steps[p.index].type][1];$('#process-back').disabled=p.index===0;$('#process-skip').hidden=done;const needBill=!done&&['fac','reference','pay','receipt','pag','message'].includes(p.steps[p.index].type);$('#process-bill-label').hidden=!needBill;const bills=state.bills.filter(b=>b.serviceId===s.id);$('#process-bill').innerHTML='<option value="">Elegí una factura</option>'+bills.map(b=>`<option value="${esc(b.id)}">${esc(periodLabel(b.period))} · ${money(b.amount)} · ${b.paidAt?'Pagada':'Pendiente'} · ${esc(b.documentCode)} · ${esc(b.bankReference)}</option>`).join('');$('#process-bill').value=bills.some(b=>b.id===p.billId)?p.billId:'';const showReference=!done&&p.steps[p.index].type==='reference';const selected=bills.find(b=>b.id===p.billId);$('#process-transfer-cards').hidden=!showReference;$('#process-reference').textContent=showReference?(selected?.bankReference||'Elegí una factura'):'';$('#process-transfer-amount').textContent=showReference?(selected?money(selected.amount):'—'):'';}
+function renderProcess(){const s=processService(),p=s?.process;if(!p){$('#process-card-vault').hidden=true;if(typeof CardVault!=='undefined')CardVault.renderProcess();$('#process-dialog').close();return;}$('#process-title').textContent=serviceLabel(s);$('#process-feedback').textContent='';$('#process-progress').max=p.steps.length;$('#process-progress').value=p.index;const done=p.index>=p.steps.length;$('#process-card-vault').hidden=done||p.steps[p.index].type!=='cards';if(typeof CardVault!=='undefined')CardVault.renderProcess();$('#process-count').textContent=done?'Secuencia terminada':`Paso ${p.index+1} de ${p.steps.length}`;$('#process-step').textContent=done?'Proceso terminado':STEP_INFO[p.steps[p.index].type][0];$('#process-instruction').textContent=done?'Podés cerrar o iniciar un nuevo proceso. Solo se registran como pagadas las facturas que confirmaste explícitamente.':p.steps[p.index].text||STEP_INFO[p.steps[p.index].type][2];const step=done?null:p.steps[p.index];const opensWeb=step&&['web','web-number'].includes(step.type);$('#process-main').textContent=done?'Cerrar':opensWeb?'Ir a la página':STEP_INFO[step.type][1];$('#process-main').title=opensWeb?(s.url||'Sin dirección configurada')+(step.type==='web-number'?' · También copia el número de usuario':''):'';$('#process-note-field').hidden=true;$('#process-note').value=step?.note||'';$('#process-note-display').textContent=step?.note||'';$('#process-note-display').hidden=done||!step.note;$('#process-edit-note').hidden=done;$('#process-edit-note').textContent='Editar nota';$('#process-edit-note').setAttribute('aria-expanded','false');$('#process-note-status').textContent='';$('#process-back').disabled=p.index===0;$('#process-skip').hidden=done;const needBill=!done&&['invoice-pdf','fac','reference','pay','receipt','receipt-pdf','pag','message'].includes(p.steps[p.index].type);$('#process-bill-label').hidden=done;const bills=state.bills.filter(b=>b.serviceId===s.id&&(!b.paidAt||b.id===p.billId));$('#process-bill').innerHTML='<option value="" hidden disabled></option>'+bills.map(b=>`<option value="${esc(b.id)}">${esc(documentName(b,'FAC').replace(/\.[^.]+$/,''))}</option>`).join('');$('#process-bill').value=bills.some(b=>b.id===p.billId)?p.billId:'';const showReference=!done&&p.steps[p.index].type==='reference';const selected=bills.find(b=>b.id===p.billId);$('#process-transfer-cards').hidden=!showReference;$('#process-reference').textContent=showReference?(selected?.bankReference||'Elegí una factura'):'';$('#process-transfer-amount').textContent=showReference?(selected?money(selected.amount):'—'):'';$('#process-selected-bill').textContent=selected?`Factura original: ${selected.providerInvoiceCode||'Sin registrar'} · Importe: ${money(selected.amount)} · Vence: ${date(selected.due)}`:'';$('#process-selected-bill').hidden=done||!selected;$('#process-edit-bill').hidden=done||!selected;$('#process-new-bill').hidden=done||step.type!=='invoice';if(step?.type==='invoice'&&selected){$('#process-step').textContent='Factura registrada';$('#process-main').textContent='Usar factura registrada';$('#process-instruction').textContent='Esta factura ya está en Histórico. Podés usarla o editar sus datos.';}renderNameOptions();renderBillPicker();}
 function workflowBillSaved(id){if(workflowBillContext)workflowBillContext.billId=id;}
 async function runProcessStep(){const s=processService(),p=s.process;if(p.index>=p.steps.length){$('#process-dialog').close();return;}const type=p.steps[p.index].type,bill=state.bills.find(b=>b.id===p.billId&&b.serviceId===s.id);const fail=text=>$('#process-feedback').textContent=text;
- if(['fac','reference','pay','receipt','pag','message'].includes(type)&&!bill){fail('Elegí una factura de este servicio. Si todavía no existe, pausá y registrala en Facturas / historial.');return;}
+ if(['invoice-pdf','fac','reference','pay','receipt','receipt-pdf','pag','message'].includes(type)&&!bill){fail('Elegí una factura de este servicio. Si todavía no existe, pausá y registrala en Histórico.');return;}
  if(type==='receipt'){
   const index=p.index,serviceId=s.id;
   const opened=openReceipt(bill.id,saved=>{
@@ -35,29 +35,125 @@ async function runProcessStep(){const s=processService(),p=s.process;if(p.index>
  }
  if(type==='web'){if(!s.url){fail('Este servicio no tiene enlace web. Agregalo en Editar servicio.');return;}window.open(s.url,'_blank','noopener,noreferrer');advanceProcess();return;}
  if(['user','password','number'].includes(type)){const value=type==='user'?s.username:type==='password'?s.password:s.serviceNumber;if(!value){fail('Falta este dato. Podés omitir el paso o editar el servicio.');return;}if(await copy(value))advanceProcess();else fail('No se pudo copiar. Podés copiar el dato desde Editar servicio y omitir este paso.');return;}
- if(type==='invoice'){workflowBillContext={serviceId:s.id,index:p.index,billId:null};$('#process-dialog').close();openBill();$('#bill-form').elements.serviceId.value=s.id;selectServicePeriod();$('#bill-form').elements.serviceId.disabled=true;return;}
+ if(type==='invoice'){if(bill){advanceProcess();return;}if(state.bills.some(b=>b.serviceId===s.id&&!b.paidAt)){fail('Elegí una de las facturas pendientes o usá Registrar otra factura.');return;}openProcessBill();return;}
  if(type==='pay'){if(!bill.paidAt){if(!confirm(`¿Confirmás que ya pagaste ${money(bill.amount)} de ${serviceLabel(s)} (${periodLabel(bill.period)})?`))return;if(!updateProcess((process,next)=>{next.bills.find(b=>b.id===bill.id).paidAt=today();process.index++;}))return;renderProcess();}else advanceProcess();return;}
- if(['pag','message'].includes(type)&&!bill.paidAt){fail('Esta factura no está confirmada como pagada. Volvé al paso Confirmar pago o registrá el pago en el historial.');return;}
+ if(['pag','message','receipt-pdf'].includes(type)&&!bill.paidAt){fail('Esta factura no está confirmada como pagada. Volvé al paso Confirmar pago o registrá el pago en el historial.');return;}
+ if(type==='receipt-pdf'){
+  if(!bill.receipt){fail('Registrá primero los datos del comprobante.');return;}
+  try{if(await downloadConstancia(bill.id))advanceProcess();}catch(error){fail(error.message||'No se pudo generar la constancia PDF.');}
+  return;
+ }
+ if(type==='invoice-pdf'){
+  try{if(await downloadFacturaPDF(bill.id))advanceProcess();}catch(error){fail(error.message||'No se pudo generar la factura PDF.');}
+  return;
+ }
  if(type==='reference'){advanceProcess();return;}
- if(type==='fac'||type==='pag'){if(await copy(documentName(bill,type==='fac'?'FAC':'PAG')))advanceProcess();else fail('No se pudo copiar. Probá nuevamente.');return;}
+ if(type==='fac'||type==='pag'){try{if(await copy(processDocumentName(bill,type==='fac'?'FAC':'PAG')))advanceProcess();else fail('No se pudo copiar. Probá nuevamente.');}catch(error){fail(error.message);}return;}
  if(type==='message'){advanceProcess();$('#process-dialog').close();openMessage(bill.id);return;}
  advanceProcess();
 }
 $('#step-type').innerHTML=Object.entries(STEP_INFO).map(([type,info])=>`<option value="${type}">${esc(info[0])}</option>`).join('');
-document.addEventListener('click',e=>{document.querySelectorAll('.service-menu[open]').forEach(menu=>{if(!menu.contains(e.target))menu.open=false;});const btn=e.target.closest('[data-action]');if(btn?.dataset.action==='start-process')startProcess(btn.dataset.id);if(btn?.dataset.action==='reset-process'){const next=structuredClone(state),service=next.services.find(s=>s.id===btn.dataset.id);service.process=null;if(save(next)){notify('Proceso reiniciado. Podés volver a iniciarlo; las facturas y los pagos registrados se conservan.');}}if(btn?.dataset.action==='edit-workflow')openWorkflow(btn.dataset.id);});
+document.addEventListener('click',e=>{document.querySelectorAll('.service-menu[open]').forEach(menu=>{if(!menu.contains(e.target))menu.open=false;});const btn=e.target.closest('[data-action]');if(btn?.dataset.action==='start-process')startProcess(btn.dataset.id);if(btn?.dataset.action==='reset-process'){const next=structuredClone(state),service=next.services.find(s=>s.id===btn.dataset.id);service.process=null;if(save(next)){notify('Proceso reiniciado. Podés volver a iniciarlo; las facturas y los pagos registrados se conservan.',feedbackContext,'success');}}if(btn?.dataset.action==='edit-workflow')openWorkflow(btn.dataset.id);});
 $('#workflow-editor').querySelector('[data-close]').onclick=()=>$('#workflow-editor').close();$('#process-dialog').querySelector('[data-close]').onclick=()=>$('#process-dialog').close();
-$('#add-step').onclick=()=>{if(draftSteps.length>=40){$('#workflow-feedback').textContent='Podés configurar hasta 40 pasos.';return;}draftSteps.push({type:$('#step-type').value,text:''});renderEditor();};
-$('#workflow-steps').addEventListener('input',e=>{if(e.target.matches('[data-step-text]'))draftSteps[Number(e.target.dataset.stepText)].text=e.target.value;});
+$('#add-step').onclick=()=>{if(draftSteps.length>=40){$('#workflow-feedback').textContent='Podés configurar hasta 40 pasos.';return;}draftSteps.push({id:crypto.randomUUID(),type:$('#step-type').value,text:'',note:''});renderEditor();};
+$('#workflow-steps').addEventListener('input',e=>{if(e.target.matches('[data-step-text]'))draftSteps[Number(e.target.dataset.stepText)].text=e.target.value;if(e.target.matches('[data-step-note]'))draftSteps[Number(e.target.dataset.stepNote)].note=e.target.value;});
 $('#workflow-steps').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.move)moveStep(Number(b.dataset.index),Number(b.dataset.index)+Number(b.dataset.move));if(b.dataset.remove!==undefined){draftSteps.splice(Number(b.dataset.remove),1);renderEditor();}});
 $('#workflow-steps').addEventListener('dragstart',e=>{const row=e.target.closest('[data-step-index]');if(!row)return;dragIndex=Number(row.dataset.stepIndex);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(dragIndex));row.classList.add('dragging');});
 $('#workflow-steps').addEventListener('dragover',e=>{if(dragIndex!==null&&e.target.closest('[data-step-index]')){e.preventDefault();e.dataTransfer.dropEffect='move';}});
 $('#workflow-steps').addEventListener('drop',e=>{const row=e.target.closest('[data-step-index]');if(row&&dragIndex!==null){e.preventDefault();moveStep(dragIndex,Number(row.dataset.stepIndex));}dragIndex=null;});
 $('#workflow-steps').addEventListener('dragend',()=>{dragIndex=null;document.querySelectorAll('.dragging').forEach(row=>row.classList.remove('dragging'));});
 $('#default-workflow').onclick=()=>{draftSteps=suggestedSteps(state.services.find(s=>s.id===editorServiceId));renderEditor();};
-$('#save-workflow').onclick=()=>{if(!draftSteps.length){$('#workflow-feedback').textContent='Agregá al menos un paso.';return;}const next=structuredClone(state),s=next.services.find(s=>s.id===editorServiceId);s.workflow=structuredClone(draftSteps);if(save(next)){$('#workflow-editor').close();notify('Secuencia guardada. Se usará en el próximo proceso; el proceso en curso conserva sus pasos.');}};
+$('#save-workflow').onclick=()=>{if(!draftSteps.length){$('#workflow-feedback').textContent='Agregá al menos un paso.';return;}const next=structuredClone(state),s=next.services.find(s=>s.id===editorServiceId);s.workflow=structuredClone(draftSteps);if(save(next)){$('#workflow-editor').close();notify('Secuencia guardada. Se usará en el próximo proceso; el proceso en curso conserva sus pasos.',feedbackContext,'success');}};
 $('#process-main').onclick=async()=>{const b=$('#process-main');b.disabled=true;try{await runProcessStep();}catch{$('#process-feedback').textContent='No se pudo completar el paso. Probá nuevamente; podés pausar sin perder el avance.';}finally{b.disabled=false;}};
 $('#process-bill').onchange=()=>{if(updateProcess(p=>p.billId=$('#process-bill').value))renderProcess();};
 $('#process-back').onclick=()=>{if(updateProcess(p=>p.index=Math.max(0,p.index-1)))renderProcess();};$('#process-skip').onclick=advanceProcess;$('#process-pause').onclick=()=>$('#process-dialog').close();
-$('#bill-dialog').addEventListener('close',()=>{ $('#bill-form').elements.serviceId.disabled=false;if(!workflowBillContext)return;const context=workflowBillContext;workflowBillContext=null;processServiceId=context.serviceId;if(context.billId)updateProcess(p=>{p.billId=context.billId;if(p.index===context.index)p.index++;});renderProcess();$('#process-dialog').showModal();});
+$('#bill-dialog').addEventListener('close',()=>{ $('#bill-form').elements.serviceId.disabled=false;if(!workflowBillContext)return;const context=workflowBillContext;workflowBillContext=null;processServiceId=context.serviceId;if(context.billId)updateProcess(p=>{p.billId=context.billId;if(context.advance!==false&&p.index===context.index)p.index++;});renderProcess();$('#process-dialog').showModal();});
 
 $('#process-dialog').addEventListener('close',()=>{$('#process-card-vault').hidden=true;CardVault.renderProcess();});
+
+// Notes belong to a step identity, so reordering or repeating a step keeps them separate.
+$('#process-note').addEventListener('input',()=>{
+ const next=structuredClone(state),service=next.services.find(s=>s.id===processServiceId),step=service?.process?.steps[service.process.index];
+ if(!step)return;
+ step.note=$('#process-note').value.slice(0,1000);
+ if(!service.workflow)service.workflow=structuredClone(service.process.steps);
+ const templateStep=service.workflow.find(item=>item.id===step.id);
+ if(templateStep)templateStep.note=step.note;
+ if(save(next))setFeedback($('#process-note-status'),templateStep?'Nota guardada para este paso.':'Nota guardada en este proceso; el paso ya no está en la secuencia configurada.','success');
+ else setFeedback($('#process-note-status'),'No se pudo guardar la nota. Volvé a intentar.','error');
+});
+
+
+$('#process-edit-note').addEventListener('click',()=>{
+ const field=$('#process-note-field'),editing=field.hidden;
+ field.hidden=!editing;
+ const step=processService()?.process?.steps[processService().process.index];
+ $('#process-note-display').textContent=step?.note||'';
+ $('#process-note-display').hidden=editing||!step?.note;
+ $('#process-edit-note').textContent=editing?'Listo':'Editar nota';
+ $('#process-edit-note').setAttribute('aria-expanded',String(editing));
+ if(editing)$('#process-note').focus();
+});
+
+let nameOptionsStep='';
+function processDocumentName(bill,type){
+ const selected=document.querySelector('input[name="process-format"]:checked').value;
+ const extension=selected==='other'?$('#process-custom-format').value.trim().replace(/^\./,'').toLowerCase():selected;
+ if(!/^[a-z0-9]{1,10}$/.test(extension))throw Error('Indicá una extensión válida, como pdf, jpeg o png.');
+ const name=documentName(bill,type,extension);
+ return $('#process-include-extension').checked?name:name.replace(/\.[^.]+$/,'');
+}
+function renderNameOptions(){
+ const service=processService(),process=service?.process,step=process?.steps[process.index];
+ const visible=step&&['fac','pag'].includes(step.type);
+ $('#process-name-options').hidden=!visible;
+ if(!visible){nameOptionsStep='';return;}
+ const key=service.id+':'+step.id;
+ if(nameOptionsStep!==key){nameOptionsStep=key;document.querySelector('input[name="process-format"][value="pdf"]').checked=true;$('#process-include-extension').checked=false;$('#process-custom-format').value='';}
+ updateNamePreview();
+}
+function updateNamePreview(){
+ $('#process-custom-format-label').hidden=document.querySelector('input[name="process-format"]:checked').value!=='other';
+ const process=processService()?.process,bill=state.bills.find(b=>b.id===process?.billId);
+ try{$('#process-name-preview').textContent=bill?processDocumentName(bill,process.steps[process.index].type==='fac'?'FAC':'PAG'):'Elegí una factura para ver el nombre.';$('#process-custom-format').setCustomValidity('');}
+ catch(error){$('#process-name-preview').textContent=error.message;$('#process-custom-format').setCustomValidity(error.message);}
+}
+$('#process-name-options').addEventListener('input',updateNamePreview);
+
+function openProcessBill(id=null){
+ const service=processService(),process=service.process;
+ workflowBillContext={serviceId:service.id,index:process.index,billId:null,advance:!id};
+ $('#process-dialog').close();openBill(id);
+ $('#bill-form').elements.serviceId.value=service.id;
+ if(!id)selectServicePeriod();
+ $('#bill-form').elements.serviceId.disabled=true;
+}
+$('#process-edit-bill').onclick=()=>openProcessBill(processService().process.billId);
+$('#process-new-bill').onclick=()=>openProcessBill();
+
+function closeBillPicker(focus=false){
+ $('#process-bill-toggle').setAttribute('aria-expanded','false');$('#process-bill-options').inert=true;
+ if(focus)$('#process-bill-toggle').focus();
+}
+function renderBillPicker(){
+ const select=$('#process-bill'),options=[...select.options].filter(option=>option.value);
+ $('#process-bill-value').textContent=select.selectedOptions[0]?.textContent||'—';
+ $('#process-bill-toggle').disabled=!options.length;
+ $('#process-bill-options').innerHTML=options.map(option=>`<button type="button" role="option" tabindex="-1" aria-selected="${option.selected}" data-bill-choice="${esc(option.value)}"><span>${esc(option.textContent)}</span><span aria-hidden="true">${option.selected?'✓':''}</span></button>`).join('');
+ closeBillPicker();
+}
+function openBillPicker(){
+ $('#process-bill-toggle').setAttribute('aria-expanded','true');$('#process-bill-options').inert=false;
+ ($('#process-bill-options [aria-selected="true"]')||$('#process-bill-options button'))?.focus({preventScroll:true});
+}
+$('#process-bill-toggle').addEventListener('click',()=>$('#process-bill-toggle').getAttribute('aria-expanded')==='true'?closeBillPicker():openBillPicker());
+$('#process-bill-toggle').addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();openBillPicker();}});
+$('#process-bill-options').addEventListener('click',event=>{const option=event.target.closest('[data-bill-choice]');if(!option)return;$('#process-bill').value=option.dataset.billChoice;$('#process-bill').dispatchEvent(new Event('change',{bubbles:true}));closeBillPicker(true);});
+$('#process-bill-options').addEventListener('keydown',event=>{
+ const options=[...$('#process-bill-options').querySelectorAll('button')],index=options.indexOf(document.activeElement);
+ let next=index;
+ if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeBillPicker(true);return;}else if(event.key==='Tab'){closeBillPicker();return;}else return;
+ event.preventDefault();options[next]?.focus();
+});
+document.addEventListener('click',event=>{if(!event.target.closest('#process-bill-label'))closeBillPicker();});
+$('#process-dialog').addEventListener('close',()=>closeBillPicker());

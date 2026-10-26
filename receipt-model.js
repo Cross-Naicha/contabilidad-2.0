@@ -1,5 +1,12 @@
 'use strict';
 const RECEIPT_FIELD_TYPES={text:'Texto',number:'Número',date:'Fecha',time:'Hora (HH:MM)',amount:'Importe',select:'Lista de opciones'};
+function receiptExtension(value){
+ if(value===undefined)return 'pdf';
+ if(typeof value!=='string')throw Error('Extensión de comprobante inválida.');
+ const extension=value.trim().toLowerCase().replace(/^\./,'');
+ if(!/^[a-z0-9]{1,10}$/.test(extension))throw Error('Usá una extensión de 1 a 10 letras o números, por ejemplo pdf, jpeg o png.');
+ return extension;
+}
 function receiptFields(data){
  if(!Array.isArray(data)||!data.length||data.length>30)throw Error('Elegí entre 1 y 30 campos para el comprobante.');
  const ids=new Set();return data.map(f=>{
@@ -14,7 +21,7 @@ function normalizeReceiptTypes(data){
  if(!Array.isArray(data)||data.length>100)throw Error('Tipos de comprobante inválidos.');
  const ids=new Set();return data.map(t=>{
   if(!t||typeof t.id!=='string'||!t.id||ids.has(t.id)||typeof t.name!=='string'||!t.name.trim()||t.name.length>80)throw Error('Tipo de comprobante inválido.');
-  ids.add(t.id);return {id:t.id,name:t.name.trim(),fields:receiptFields(t.fields)};
+  ids.add(t.id);return {id:t.id,name:t.name.trim(),extension:receiptExtension(t.extension),fields:receiptFields(t.fields)};
  });
 }
 function normalizeReceipt(data){
@@ -28,7 +35,7 @@ function normalizeReceipt(data){
   if(value&&f.type==='select'&&!f.options.includes(value))throw Error(`Opción inválida en ${f.label}.`);
   return {...f,value};
  });
- return {typeId:data.typeId,typeName:data.typeName.trim(),fields,savedAt:data.savedAt};
+ return {typeId:data.typeId,typeName:data.typeName.trim(),extension:receiptExtension(data.extension),fields,savedAt:data.savedAt};
 }
 function receiptSummaryHTML(b){
  if(!b.receipt)return '';

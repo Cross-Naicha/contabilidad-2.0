@@ -6,14 +6,24 @@ import shutil
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent / "Facturas & Comprobantes"
+
 # Primeras tres letras del servicio usado en la aplicación.
-CARPETAS = {"LUZ": "Electricidad", "ELE": "Electricidad"}
+CARPETAS = {
+    "ELE": "Electricidad",
+    "INT": "Internet",
+    "GAS": "Gas",
+    "AGU": "Agua",
+    "SEG": "Seguro",
+    "MED": "Medicina"
+}
+
+
 PATRON = re.compile(
     r"^(?P<servicio>[A-Z]{3})-(?P<proveedor>[A-Z]{3})-"
     r"(?P<anio>\d{4})(?P<periodo>0[1-9]|1[0-2])-"
     r"(?P<numero>0[1-9]|[1-9]\d)"
     r"(?:-(?P<referencia>[A-Z]{3}(?:00[1-9]|0[1-9]\d|[1-9]\d{2})))?"
-    r"-(?P<tipo>FAC|PAG)\.pdf$",
+    r"-(?P<tipo>FAC|PAG)\.[a-zA-Z0-9]{1,10}$",
     re.IGNORECASE,
 )
 

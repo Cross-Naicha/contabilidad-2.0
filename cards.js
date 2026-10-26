@@ -2,7 +2,7 @@
 const CardVault=(()=>{
  const storageKey='casa-tarjetas-v1';
  let key=null,salt=null,cards=[],epoch=0,busy=false,timer,pending=null;
- const feedback=text=>{$('#cards-feedback').textContent=text;};
+ const feedback=(text,kind='success')=>notify(text,feedbackContext,kind);
  function stored(){const raw=localStorage.getItem(storageKey);return raw?CardCrypto.envelope(JSON.parse(raw)):null;}
  function validate(data){
   if(!Array.isArray(data)||data.length>50)throw Error('Datos de tarjetas inválidos.');
@@ -12,8 +12,18 @@ const CardVault=(()=>{
   });
  }
  function touch(){clearTimeout(timer);if(key)timer=setTimeout(()=>lock('Se bloqueó por inactividad.'),300000);}
+ function revealFieldsHTML(id){
+  return `<div class="card-reveal-controls"><button type="button" class="secondary" data-card-reveal="number" data-card-id="${esc(id)}" aria-expanded="false">Mostrar número</button><button type="button" class="secondary" data-card-reveal="holder" data-card-id="${esc(id)}" aria-expanded="false">Mostrar titular</button></div><div class="card-field-display" data-card-field="number" hidden></div><div class="card-field-display" data-card-field="holder" hidden></div>`;
+ }
+ function showCardField(button,card){
+  const field=button.dataset.cardReveal;if(!['number','holder'].includes(field))return;
+  const display=button.closest('.vault-card').querySelector(`[data-card-field="${field}"]`),label=field==='number'?'número':'titular';
+  display.hidden=!display.hidden;
+  display.textContent=display.hidden?'':field==='number'?card.number.match(/.{1,4}/g).join(' '):card.holder;
+  button.textContent=`${display.hidden?'Mostrar':'Ocultar'} ${label}`;button.setAttribute('aria-expanded',String(!display.hidden));
+ }
  function render(){
-  let exists=false;try{exists=!!stored();}catch{feedback('No se puede leer la sección cifrada. Conservá un respaldo antes de modificarla.');exists=true;}
+  let exists=false;try{exists=!!stored();}catch{feedback('No se puede leer la sección cifrada. Conservá un respaldo antes de modificarla.','error');exists=true;}
   $('#cards-unlock-form').hidden=!!key;$('#cards-unlocked').hidden=!key;$('#cards-lock').hidden=!key;
   $('#cards-confirm-label').hidden=exists||!!pending;$('#cards-confirm').required=!exists&&!pending;
   $('#cards-passphrase').minLength=exists||pending?1:12;
@@ -22,13 +32,13 @@ const CardVault=(()=>{
   $('#cards-unlock-submit').textContent=pending?'Desbloquear respaldo':exists?'Desbloquear':'Crear sección cifrada';
   $('#cards-cancel-import').hidden=!pending;
   $('#cards-reset').hidden=!exists||!!pending;
-  $('#cards-list').innerHTML=key?(cards.length?cards.map(c=>`<article class="vault-card"><h3>${esc(c.label)}</h3><p>•••• •••• •••• ${esc(c.number.slice(-4))}</p><p>${esc(c.holder)} · ${esc(c.expiry)}</p><div class="actions"><button data-card-copy="number" data-card-id="${esc(c.id)}">Copiar número</button><button data-card-copy="holder" data-card-id="${esc(c.id)}">Copiar titular</button><button data-card-copy="expiry" data-card-id="${esc(c.id)}">Copiar vencimiento</button><button class="secondary" data-card-show="${esc(c.id)}">Mostrar vencimiento</button><button class="secondary" data-card-edit="${esc(c.id)}">Editar</button><button class="text-button" data-card-delete="${esc(c.id)}">Eliminar</button></div><div class="card-expiry-display" hidden></div></article>`).join(''):'<p>No agregaste tarjetas todavía.</p>'):'';
+  $('#cards-list').innerHTML=key?(cards.length?cards.map(c=>`<article class="vault-card"><h3>${esc(c.label)}</h3><p>•••• •••• •••• ${esc(c.number.slice(-4))}</p><p>${esc(c.holder)} · ${esc(c.expiry)}</p><div class="actions"><button data-card-copy="number" data-card-id="${esc(c.id)}">Copiar número</button><button data-card-copy="holder" data-card-id="${esc(c.id)}">Copiar titular</button><button data-card-copy="expiry" data-card-id="${esc(c.id)}">Copiar vencimiento</button><button class="secondary" data-card-show="${esc(c.id)}">Mostrar vencimiento</button><button class="secondary" data-card-edit="${esc(c.id)}">Editar</button><button class="text-button" data-card-delete="${esc(c.id)}">Eliminar</button></div>${revealFieldsHTML(c.id)}<div class="card-expiry-display" hidden></div></article>`).join(''):'<p>No agregaste tarjetas todavía.</p>'):'';
   renderInline();
  }
  function renderInline(){
   const container=$('#process-card-vault');if(container.hidden){container.innerHTML='';return;}
   if(!key){container.innerHTML='<form id="process-card-unlock" autocomplete="off"><label>Clave de las tarjetas<input name="passphrase" type="password" required autocomplete="off"></label><button>Desbloquear tarjetas</button></form><p>Si todavía no cargaste tarjetas, pausá el proceso y agregalas en la pestaña Tarjetas.</p><p id="process-card-feedback" role="status"></p>';return;}
-  container.innerHTML=(cards.length?cards.map(c=>`<article class="vault-card"><h3>${esc(c.label)}</h3><p>•••• •••• •••• ${esc(c.number.slice(-4))}</p><div class="actions"><button data-card-copy="number" data-card-id="${esc(c.id)}">Copiar número</button><button data-card-copy="holder" data-card-id="${esc(c.id)}">Copiar titular</button><button data-card-copy="expiry" data-card-id="${esc(c.id)}">Copiar vencimiento</button><button class="secondary" data-card-show="${esc(c.id)}">Mostrar vencimiento</button></div><div class="card-expiry-display" hidden></div></article>`).join(''):'<p>No hay tarjetas cargadas. Pausá para agregarlas desde Tarjetas.</p>')+'<button class="text-button" data-inline-lock>Bloquear tarjetas</button><p id="process-card-feedback" role="status"></p>';
+  container.innerHTML=(cards.length?cards.map(c=>`<article class="vault-card"><h3>${esc(c.label)}</h3><p>•••• •••• •••• ${esc(c.number.slice(-4))}</p><div class="process-card-primary"><button data-card-copy="number" data-card-id="${esc(c.id)}" title="Copiar número">Número</button><button data-card-copy="holder" data-card-id="${esc(c.id)}" title="Copiar titular">Titular</button></div>${revealFieldsHTML(c.id)}<p class="process-card-subtitle">Vencimiento</p><div class="process-card-expiry"><button data-card-copy="expiry" data-card-id="${esc(c.id)}" title="Copiar vencimiento en MM/AAAA">MM/AAAA</button><button data-card-copy="expiry-short" data-card-id="${esc(c.id)}" title="Copiar vencimiento en MM/AA">MM/AA</button><button class="secondary" data-card-show="${esc(c.id)}" data-compact-expiry>Mostrar</button></div><div class="card-expiry-display" hidden></div></article>`).join(''):'<p>No hay tarjetas cargadas. Pausá para agregarlas desde Tarjetas.</p>')+'<button class="text-button" data-inline-lock>Bloquear tarjetas</button><p id="process-card-feedback" role="status"></p>';
  }
  $('#process-card-vault').addEventListener('submit',async e=>{
   e.preventDefault();if(busy)return;busy=true;const token=epoch,form=e.target,button=form.querySelector('button');button.disabled=true;
@@ -40,14 +50,15 @@ const CardVault=(()=>{
   const button=e.target.closest('button');if(!button||!key||busy)return;touch();
   if(button.hasAttribute('data-inline-lock')){lock();return;}
   const card=cards.find(c=>c.id===(button.dataset.cardId||button.dataset.cardShow));if(!card)return;
+  if(button.dataset.cardReveal){showCardField(button,card);return;}
   if(button.dataset.cardShow){showExpiry(button,card);return;}
-  if(button.dataset.cardCopy&&await copy(card[button.dataset.cardCopy])){const message=$('#process-card-feedback');if(message)message.textContent='Dato copiado.';}
+  if(button.dataset.cardCopy){const value=button.dataset.cardCopy==='expiry-short'?`${card.expiry.slice(0,2)}/${card.expiry.slice(-2)}`:card[button.dataset.cardCopy];await copy(value);}
  });
  function showExpiry(button,card){
   const [month,year]=card.expiry.split('/'),names=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const display=button.closest('.vault-card').querySelector('.card-expiry-display');display.hidden=!display.hidden;
   display.innerHTML=display.hidden?'':`<div><span>Mes</span><strong>${esc(month)} · ${names[Number(month)-1]}</strong></div><div><span>Año</span><strong>${esc(year)}</strong></div>`;
-  button.textContent=display.hidden?'Mostrar vencimiento':'Ocultar vencimiento';
+  button.textContent=button.hasAttribute('data-compact-expiry')?(display.hidden?'Mostrar':'Ocultar'):(display.hidden?'Mostrar vencimiento':'Ocultar vencimiento');
  }
  function lock(message='Tarjetas bloqueadas.'){
   epoch++;key=null;salt=null;cards=[];clearTimeout(timer);$('#card-dialog').close();$('#card-form').reset();$('#cards-unlock-form').reset();render();feedback(message);
@@ -66,13 +77,13 @@ const CardVault=(()=>{
    if(pending&&stored()&&!confirm('¿Reemplazar las tarjetas actuales por las del respaldo?'))return;
    if(pending||!value)localStorage.setItem(storageKey,JSON.stringify(pending||result.stored));
    key=result.key;salt=result.salt;cards=result.cards;pending=null;$('#cards-unlock-form').reset();render();touch();feedback('Tarjetas desbloqueadas.');
-  }catch(err){feedback(err.name==='OperationError'?'Clave incorrecta o respaldo dañado.':err.message);}finally{busy=false;$('#cards-unlock-submit').disabled=false;}
+  }catch(err){feedback(err.name==='OperationError'?'Clave incorrecta o respaldo dañado.':err.message,'error');}finally{busy=false;$('#cards-unlock-submit').disabled=false;}
  });
  $('#cards-lock').addEventListener('click',()=>lock());
  $('#cards-reset').addEventListener('click',()=>{
   if(busy)return;
   if(!confirm('Se eliminarán todas las tarjetas guardadas en este navegador. Tendrás que crear una clave nueva y volver a cargarlas. Las facturas y los servicios se conservan. ¿Reiniciar tarjetas?'))return;
-  try{localStorage.removeItem(storageKey);pending=null;lock('Tarjetas eliminadas. Ahora podés crear una clave nueva.');}catch{feedback('El navegador no permitió reiniciar las tarjetas.');}
+  try{localStorage.removeItem(storageKey);pending=null;lock('Tarjetas eliminadas. Ahora podés crear una clave nueva.');}catch{feedback('El navegador no permitió reiniciar las tarjetas.','error');}
  });
  function edit(id){if(!key)return;const f=$('#card-form');f.reset();$('#card-form-error').textContent='';const c=cards.find(c=>c.id===id);if(c)for(const field of ['id','label','number','holder','expiry'])f.elements[field].value=c[field];$('#card-dialog').showModal();touch();}
  $('#cards-add').addEventListener('click',()=>edit());
@@ -84,15 +95,18 @@ const CardVault=(()=>{
  });
  $('#cards-list').addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b||!key||busy)return;touch();
+  if(b.dataset.cardReveal){const card=cards.find(c=>c.id===b.dataset.cardId);if(card)showCardField(b,card);return;}
   if(b.dataset.cardShow){const card=cards.find(c=>c.id===b.dataset.cardShow);if(card)showExpiry(b,card);return;}if(b.dataset.cardEdit){edit(b.dataset.cardEdit);return;}
-  if(b.dataset.cardCopy){const c=cards.find(c=>c.id===b.dataset.cardId);if(c&&await copy(c[b.dataset.cardCopy]))feedback('Dato copiado.');return;}
-  if(b.dataset.cardDelete&&confirm('¿Eliminar esta tarjeta?')){busy=true;try{await persist(cards.filter(c=>c.id!==b.dataset.cardDelete));feedback('Tarjeta eliminada.');}catch(err){feedback(err.message);}finally{busy=false;}}
+  if(b.dataset.cardCopy){const c=cards.find(c=>c.id===b.dataset.cardId);if(c)await copy(c[b.dataset.cardCopy]);return;}
+  if(b.dataset.cardDelete&&confirm('¿Eliminar esta tarjeta?')){busy=true;try{await persist(cards.filter(c=>c.id!==b.dataset.cardDelete));feedback('Tarjeta eliminada.');}catch(err){feedback(err.message,'error');}finally{busy=false;}}
  });
- $('#cards-export').addEventListener('click',()=>{try{const value=stored();if(!value)throw Error('Primero creá la sección cifrada.');download(value,'casa-tarjetas-cifradas.json');feedback('Respaldo cifrado descargado.');}catch(err){feedback(err.message);}});
- $('#cards-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||busy)return;try{if(file.size>1000000)throw Error('El respaldo es demasiado grande.');const value=CardCrypto.envelope(JSON.parse(await file.text()));lock('Ingresá la clave del respaldo para verificarlo.');pending=value;render();}catch(err){feedback(err.message);}finally{e.target.value='';}});
+ $('#cards-export').addEventListener('click',()=>{try{const value=stored();if(!value)throw Error('Primero creá la sección cifrada.');download(value,'casa-tarjetas-cifradas.json');feedback('Respaldo cifrado descargado.');}catch(err){feedback(err.message,'error');}});
+ $('#cards-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||busy)return;try{if(file.size>1000000)throw Error('El respaldo es demasiado grande.');const value=CardCrypto.envelope(JSON.parse(await file.text()));lock('Ingresá la clave del respaldo para verificarlo.');pending=value;render();}catch(err){feedback(err.message,'error');}finally{e.target.value='';}});
  $('#cards-cancel-import').addEventListener('click',()=>{pending=null;lock('Restauración cancelada.');});
  document.addEventListener('pointerdown',touch);document.addEventListener('keydown',touch);
  window.addEventListener('pagehide',()=>lock());window.addEventListener('storage',e=>{if(e.key===storageKey||e.key===null){pending=null;lock('Los datos cambiaron en otra pestaña. Volvé a desbloquearlos.');}});
  render();
  return {renderProcess:renderInline};
 })();
+
+

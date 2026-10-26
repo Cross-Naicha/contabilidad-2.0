@@ -87,3 +87,11 @@ Live Server tiene la recarga automática desactivada para no interrumpir formula
 ## Próximo vencimiento anunciado
 
 Al registrar o editar una factura, podés ingresar la fecha anunciada para la siguiente. Es opcional y debe ser posterior al vencimiento actual. Se conserva en el historial y en el respaldo habitual. En Servicios aparece como Próxima factura, pendiente de registrar. El aviso usa la factura con el vencimiento actual más reciente del servicio; al registrar la siguiente, deja de mostrar el anuncio anterior y usa el de la nueva factura, si tiene uno. No crea facturas ni importa montos estimados.
+
+## Constancia personal PDF
+
+Si el proveedor no entrega un PDF, confirmá el pago y registrá el comprobante. El historial ofrece Constancia PDF y el editor de secuencias incluye Generar constancia PDF como paso opcional. Se descarga con el nombre codificado PAG.pdf, sin mover ni sobrescribir archivos de la carpeta de documentos.
+
+Incluye servicio, proveedor, número de servicio, web, códigos, referencia bancaria, período, importe facturado, consumo, vencimientos, fecha de pago confirmada, notas y todos los campos del comprobante (también opcionales vacíos, fecha y hora). Indica cuándo se guardaron los datos y cuándo se generó el archivo, en hora de Argentina. Los textos extensos continúan en otras páginas. El documento aclara que es una constancia personal, no emitida por el proveedor. No incluye contraseñas ni tarjetas.
+
+La generación funciona sin internet después de actualizar la PWA. Usa una copia local de pdf-lib (licencia incluida en vendor/pdf-lib-LICENSE.md); no transmite datos. La mayoría del texto es seleccionable; los caracteres Unicode que las fuentes PDF estándar no soportan se conservan como imágenes dentro del documento. No adjunta capturas ni verifica el pago con el proveedor.

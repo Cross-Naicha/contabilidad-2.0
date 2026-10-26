@@ -5,10 +5,11 @@ function syncReceiptTypeOptions(selected=''){
  $('#service-receipt-type').value=selected||'';
 }
 function renderReceiptTypes(){
- $('#receipt-types-list').innerHTML=(state.receiptTypes||[]).map(t=>`<article class="receipt-template"><h3>${esc(t.name)}</h3><p>${t.fields.map(f=>esc(f.label)+(f.required?' *':'')).join(' · ')}</p><div class="actions"><button class="secondary small" data-edit-receipt-type="${esc(t.id)}">Editar</button><button class="text-button" data-delete-receipt-type="${esc(t.id)}">Eliminar</button></div></article>`).join('')||'<p>Todavía no creaste tipos de comprobante.</p>';
+ $('#receipt-types-list').innerHTML=(state.receiptTypes||[]).map(t=>`<article class="receipt-template"><h3>${esc(t.name)}</h3><p class="meta">Archivo .${esc(t.extension||'pdf')}</p><p>${t.fields.map(f=>esc(f.label)+(f.required?' *':'')).join(' · ')}</p><div class="actions"><button class="secondary small" data-edit-receipt-type="${esc(t.id)}">Editar</button><button class="text-button" data-delete-receipt-type="${esc(t.id)}">Eliminar</button></div></article>`).join('')||'<p>Todavía no creaste tipos de comprobante.</p>';
 }
 function readTemplateFields(){
  receiptDraft.name=$('#receipt-type-form').elements.templateName.value;
+ receiptDraft.extension=$('#receipt-file-format').value==='other'?$('#receipt-type-form').elements.fileExtension.value:$('#receipt-file-format').value;
  receiptDraft.fields=[...$('#receipt-template-fields').querySelectorAll('[data-template-field]')].map(row=>({id:row.dataset.templateField,label:row.querySelector('[data-field-label]').value,type:row.querySelector('[data-field-type]').value,required:row.querySelector('[data-field-required]').checked,options:row.querySelector('[data-field-options]').value.split('\n').map(x=>x.trim()).filter(Boolean)}));
 }
 function renderTemplateFields(){
@@ -16,9 +17,11 @@ function renderTemplateFields(){
 }
 function openReceiptType(id){
  const existing=(state.receiptTypes||[]).find(t=>t.id===id);
- receiptDraft=existing?structuredClone(existing):{id:crypto.randomUUID(),name:'',fields:[{id:crypto.randomUUID(),label:'Número de operación',type:'text',required:true,options:[]},{id:crypto.randomUUID(),label:'Fecha de pago',type:'date',required:true,options:[]},{id:crypto.randomUUID(),label:'Importe pagado',type:'amount',required:true,options:[]}]};
- $('#receipt-type-form').reset();$('#receipt-type-form').elements.templateName.value=receiptDraft.name;$('#receipt-template-error').textContent='';renderTemplateFields();$('#receipt-types-dialog').close();$('#receipt-type-editor').showModal();
+ receiptDraft=existing?structuredClone(existing):{id:crypto.randomUUID(),name:'',extension:'pdf',fields:[{id:crypto.randomUUID(),label:'Número de operación',type:'text',required:true,options:[]},{id:crypto.randomUUID(),label:'Fecha de pago',type:'date',required:true,options:[]},{id:crypto.randomUUID(),label:'Importe pagado',type:'amount',required:true,options:[]}]};
+ $('#receipt-type-form').reset();$('#receipt-type-form').elements.templateName.value=receiptDraft.name;const extension=receiptDraft.extension||'pdf';$('#receipt-file-format').value=['pdf','jpeg','jpg','png'].includes(extension)?extension:'other';$('#receipt-type-form').elements.fileExtension.value=extension;syncReceiptFileFormat();$('#receipt-template-error').textContent='';renderTemplateFields();$('#receipt-types-dialog').close();$('#receipt-type-editor').showModal();
 }
+function syncReceiptFileFormat(){const other=$('#receipt-file-format').value==='other';$('#receipt-other-extension').hidden=!other;$('#receipt-type-form').elements.fileExtension.required=other;$('#receipt-type-form').elements.fileExtension.disabled=!other;}
+$('#receipt-file-format').addEventListener('change',syncReceiptFileFormat);
 $('#manage-receipt-types').onclick=()=>{$('#settings-dialog').close();renderReceiptTypes();$('#receipt-types-feedback').textContent='';$('#receipt-types-dialog').showModal();};
 $('#new-receipt-type').onclick=()=>openReceiptType();
 $('#receipt-types-list').addEventListener('click',e=>{
@@ -42,11 +45,11 @@ $('#receipt-type-form').onsubmit=e=>{
  e.preventDefault();readTemplateFields();try{const [type]=normalizeReceiptTypes([receiptDraft]),next=structuredClone(state);next.receiptTypes=next.receiptTypes||[];const index=next.receiptTypes.findIndex(t=>t.id===type.id);if(index<0)next.receiptTypes.push(type);else next.receiptTypes[index]=type;if(save(next)){$('#receipt-type-editor').close();renderReceiptTypes();$('#receipt-types-dialog').showModal();}}catch(err){$('#receipt-template-error').textContent=err.message;}
 };
 $('#receipt-type-editor').addEventListener('close',()=>{$('#receipt-type-form').reset();$('#receipt-template-fields').innerHTML='';receiptDraft=null;});
-function openReceipt(billId,onSaved=null){
+function openReceipt(billId,onSaved=null,onError=notify){
  const bill=state.bills.find(b=>b.id===billId);if(!bill)return false;
  const service=state.services.find(s=>s.id===bill.serviceId),type=(state.receiptTypes||[]).find(t=>t.id===service.receiptTypeId);
- if(!bill.receipt&&!type){notify('Asigná un tipo de comprobante a este servicio desde Editar servicio. Creá sus campos en Configuraciones → Tipos de comprobante.');return false;}
- receiptSchema=bill.receipt?{id:bill.receipt.typeId,name:bill.receipt.typeName,fields:structuredClone(bill.receipt.fields)}:structuredClone(type);receiptBillId=bill.id;receiptReturn=onSaved;
+ if(!bill.receipt&&!type){onError('Asigná un tipo de comprobante a este servicio desde Editar servicio. Creá sus campos en Configuraciones → Tipos de comprobante.');return false;}
+ receiptSchema=bill.receipt?{id:bill.receipt.typeId,name:bill.receipt.typeName,extension:bill.receipt.extension,fields:structuredClone(bill.receipt.fields)}:structuredClone(type);receiptBillId=bill.id;receiptReturn=onSaved;
  $('#receipt-form').reset();$('#receipt-title').textContent=bill.receipt?'Editar comprobante':'Registrar comprobante';$('#receipt-error').textContent='';$('#receipt-bill-info').textContent=`${serviceLabel(service)} · ${periodLabel(bill.period)} · ${money(bill.amount)}`;$('#receipt-type-info').textContent=receiptSchema.name;$('#receipt-document-name').textContent=documentName(bill,'PAG');
  $('#receipt-value-fields').innerHTML=receiptSchema.fields.map((f,index)=>{
   const value=bill.receipt?f.value:f.type==='amount'?String(bill.amount):f.type==='date'?(bill.paidAt||today()):'';
@@ -56,11 +59,13 @@ function openReceipt(billId,onSaved=null){
 }
 $('#receipt-form').onsubmit=e=>{
  e.preventDefault();try{
-  const receipt=normalizeReceipt({typeId:receiptSchema.id,typeName:receiptSchema.name,fields:receiptSchema.fields.map((f,index)=>({...f,value:e.target.elements['value'+index].value.trim()})),savedAt:new Date().toISOString()}),next=structuredClone(state),bill=next.bills.find(b=>b.id===receiptBillId);
+  const receipt=normalizeReceipt({typeId:receiptSchema.id,typeName:receiptSchema.name,extension:receiptSchema.extension,fields:receiptSchema.fields.map((f,index)=>({...f,value:e.target.elements['value'+index].value.trim()})),savedAt:new Date().toISOString()}),next=structuredClone(state),bill=next.bills.find(b=>b.id===receiptBillId);
   if(!bill)throw Error('La factura ya no existe.');bill.receipt=receipt;
-  if(save(next)){const callback=receiptReturn;receiptReturn=null;$('#receipt-dialog').close();notify('Comprobante guardado. El estado del pago se conserva.');if(callback)callback(true);}
+  if(save(next)){const callback=receiptReturn;receiptReturn=null;$('#receipt-dialog').close();notify('Comprobante guardado. El estado del pago se conserva.',feedbackContext,'success');if(callback)callback(true);}
  }catch(err){$('#receipt-error').textContent=err.message;}
 };
 $('#receipt-dialog').addEventListener('close',()=>{const callback=receiptReturn;receiptReturn=null;receiptBillId='';receiptSchema=null;$('#receipt-form').reset();$('#receipt-value-fields').innerHTML='';if(callback)callback(false);});
-document.addEventListener('click',e=>{const button=e.target.closest('[data-action="receipt"]');if(button)openReceipt(button.dataset.id);});
+document.addEventListener('click',e=>{const button=e.target.closest('[data-action="receipt"]');if(!button)return;
+ const feedback=button.closest('.bill').querySelector('.bill-feedback');feedback.hidden=true;feedback.textContent='';
+ openReceipt(button.dataset.id,null,message=>{setFeedback(feedback,message,'error');feedback.scrollIntoView({block:'nearest',behavior:'smooth'});});});
 syncReceiptTypeOptions();
